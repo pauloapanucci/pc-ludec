@@ -9,10 +9,7 @@
 */
 /* lu.c: this file is part of PolyBench/C */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <math.h>
+#include "util.h"
 
 /* Include polybench common header. */
 #include <polybench.h>
@@ -74,21 +71,18 @@ including the call and return. */
 static void kernel_lu(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
 	int i, j, k;
 
-	#pragma scop
-	for (i = 0; i < _PB_N; i++) {
-		for (j = 0; j <i; j++) {
-			for (k = 0; k < j; k++) {
-				A[i][j] -= A[i][k] * A[k][j];
-			}
-			A[i][j] /= A[j][j];
-		}
-		for (j = i; j < _PB_N; j++) {
-			for (k = 0; k < i; k++) {
-				A[i][j] -= A[i][k] * A[k][j];
-			}
-		}
-	}
-	#pragma endscop
+  #pragma scop
+  for (k = 0; k < _PB_N; k++){
+    for (j = k+1; j < _PB_N; j++){
+      A[k][j] = A[k][j] / A[k][k];
+    }
+    for(i = k+1; i < _PB_N; i++){
+      for (j = k + 1; j < _PB_N; j++){
+        A[i][j] -= A[i][k] * A[k][j];
+      }
+    }
+  }
+  #pragma endscop
 }
 
 
@@ -106,8 +100,9 @@ int main(int argc, char** argv){
 	polybench_start_instruments;
 
 	/* Run kernel. */
+	BEGINTIME();
 	kernel_lu (n, POLYBENCH_ARRAY(A));
-	print_array(n, POLYBENCH_ARRAY(A));
+	ENDTIME();
 	/* Stop and print timer. */
 	polybench_stop_instruments;
 	polybench_print_instruments;

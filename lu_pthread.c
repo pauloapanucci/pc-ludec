@@ -5,12 +5,7 @@
 * Contact: Louis-Noel Pouchet <pouchet@cse.ohio-state.edu>
 * Web address: http://polybench.sourceforge.net
 */
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <math.h>
-#include <pthread.h>
-#include "pthread_barrier.h"
+
 #include "util.h"
 
 /* Include polybench common header. */
@@ -119,13 +114,13 @@ static void *kernel_lu(void *arg){
 
   #pragma scop
   for (k = 0; k < size; k++){
-    // int goof = maximum(k + 1, start);
-    for (i = start; i < end; i++){
+    int goof = maximum(k + 1, start);
+    for (i = goof; i < end; i++){
       I[i][k] /= I[k][k];
     }
     pthread_barrier_wait(&barrier);
-    for(i = start; i < end; i++){
-      for (j = start; j < size; j++){
+    for(i = goof; i < end; i++){
+      for (j = k + 1; j < size; j++){
         I[i][j] -= I[i][k] * I[k][j];
       }
     }
@@ -135,30 +130,6 @@ static void *kernel_lu(void *arg){
   return NULL;
 
 }
-
-// static void *kernel_lu(void *arg){
-// 	int i, j, k;
-//
-//   int id = *((int *)arg);
-//   int start = id * cut;
-//   int end = minimum(start + cut, size);
-//
-// 	#pragma scop
-// 	for (i = 0; i < size; i++) {
-// 		for (j = 0; j <i; j++) {
-// 			for (k = 0; k < j; k++) {
-// 				A[i][j] -= A[i][k] * A[k][j];
-// 			}
-// 			A[i][j] /= A[j][j];
-// 		}
-// 		for (j = i; j < size; j++) {
-// 			for (k = 0; k < i; k++) {
-// 				A[i][j] -= A[i][k] * A[k][j];
-// 			}
-// 		}
-// 	}
-// 	#pragma endscop
-// }
 
 void ludec_pthread(){
 
@@ -180,28 +151,33 @@ void ludec_pthread(){
 
 
 int main(int argc, char** argv){
+  srand(time(0));
+
   /* Retrieve problem size. */
 
   nthreads = atoi(argv[1]);
 
   size = N;
 
+  cut = (int)ceil(((float)size) / nthreads);
+
   /* Variable declaration/allocation. */
-  POLYBENCH_2D_ARRAY_DECL(A, DATA_TYPE, N, N, size, size);
+  // POLYBENCH_2D_ARRAY_DECL(A, DATA_TYPE, N, N, size, size);
 
 
   /* Initialize array(s). */
-  init_array(size, POLYBENCH_ARRAY(A));
+  // init_array(size, POLYBENCH_ARRAY(A));
+
+  aloc2Dmatrix(&I, size, size);
+  populate2Dmatrix(I, size);
 
   /* Start timer. */
   polybench_start_instruments;
 
   /* Run kernel. */
-  printf("Sequential\n");
-  lu_seq();
-  printMatrix(S, size);
-  printf("Pthread\n");
+  BEGINTIME();
   ludec_pthread();
+  ENDTIME();
 
   printMatrix(I, size);
   /* Stop and print timer. */
@@ -210,10 +186,12 @@ int main(int argc, char** argv){
 
   /* Prevent dead-code elimination. All live-out data must be printed
   by the function call in argument. */
-  polybench_prevent_dce(print_array(size, POLYBENCH_ARRAY(A)));
+  // polybench_prevent_dce(print_array(size, POLYBENCH_ARRAY(A)));
 
   /* Be clean. */
-  POLYBENCH_FREE_ARRAY(A);
+  // POLYBENCH_FREE_ARRAY(A);
+  free2D(I);
+  // free2D(S);
 
   return 0;
 }
