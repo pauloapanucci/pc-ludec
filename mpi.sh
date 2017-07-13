@@ -1,0 +1,1 @@
+mpirun -n 2 -N 1  -hostfile ips.txt ./lu_mpi.out
