@@ -78,7 +78,7 @@ void ludec_mpi(){
       }
     }
 
-    //MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
 
     /* Brodcast Message for the other processing nodes */
     MPI_Bcast(&I[j][j], size - j, MPI_DOUBLE, cut[j], MPI_COMM_WORLD);
@@ -91,7 +91,7 @@ void ludec_mpi(){
       }
     }
 
-    //MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
 
   }
 
