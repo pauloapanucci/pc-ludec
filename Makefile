@@ -2,7 +2,7 @@
 CC = gcc
 MCC = mpicc
 CFLAGS = -std=gnu99 -O3 -lm
-DATASET = -DCUSTOM_DATASET
+DATASET = -DLARGE_DATASET
 PROGRAM = lu
 BARRIER = pthread_barrier.c
 # BARRIER = ""
