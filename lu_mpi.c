@@ -62,7 +62,7 @@ void ludec_mpi(){
 	}
 
   // /*Executing kernel*/
-  int *cut = malloc(size * (sizeof *map));
+  int *cut = malloc(size * (sizeof *cut));
 
   for (int i = 0; i < size; i++){
     cut[i] = i % world_size;

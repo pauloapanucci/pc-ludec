@@ -8,8 +8,8 @@ BARRIER = pthread_barrier.c
 # BARRIER = ""
 
 compile:
-	$(CC) $(CFLAGS) -I utilities utilities/polybench.c util.c $(PROGRAM).c $(DATASET) -o $(PROGRAM).out
-	$(CC) $(CFLAGS) -pthread -I utilities utilities/polybench.c util.c $(BARRIER) $(PROGRAM)_pthread.c $(DATASET) -o $(PROGRAM)_pthread.out
+	# $(CC) $(CFLAGS) -I utilities utilities/polybench.c util.c $(PROGRAM).c $(DATASET) -o $(PROGRAM).out
+	# $(CC) $(CFLAGS) -pthread -I utilities utilities/polybench.c util.c $(BARRIER) $(PROGRAM)_pthread.c $(DATASET) -o $(PROGRAM)_pthread.out
 	$(MCC) $(CFLAGS) -I utilities utilities/polybench.c util.c $(PROGRAM)_mpi.c $(DATASET) -o $(PROGRAM)_mpi.out
 
 clean:
