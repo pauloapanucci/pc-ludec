@@ -22,6 +22,7 @@ int size;
 int cut;
 int nthreads;
 int world_size, world_rank;
+double **I;
 
 
 void ludec_mpi(){
@@ -32,34 +33,33 @@ void ludec_mpi(){
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-	double **I;
-  aloc2Dmatrix(&I, size, size);
+  // aloc2Dmatrix(&I, size, size);
 
-  /*Distribute tasks*/
-	if(world_rank == 0){
-    populate2Dmatrix(I, size);
+ //  /*Distribute tasks*/
+	// if(world_rank == 0){
+ //    populate2Dmatrix(I, size);
 
-		for(int i = 1; i < world_size; i++){
-			for(int j = 0; j < size; j++){
-        for (int k = 0; k < size; k++) {
-          MPI_Send(&I[j][k], 1, MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
-        }
-      }
-		}
+	// 	for(int i = 1; i < world_size; i++){
+	// 		for(int j = 0; j < size; j++){
+ //        for (int k = 0; k < size; k++) {
+ //          MPI_Send(&I[j][k], 1, MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+ //        }
+ //      }
+	// 	}
 
-    // printf("world_rank(%d) distributing the matrix: \n", world_rank);
-    // printMatrix(Original, size);
-	}
-  /*Receiving tasks*/
-  else{
-    for(int i = 0; i < size; i++){
-      for (int j = 0; j < size; j++) {
-        MPI_Recv(&I[i][j], 1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      }
-    }
-    // printf("world_rank(%d) receiving the matrix: \n", world_rank);
-    // printMatrix(Copy, size);
-	}
+ //    // printf("world_rank(%d) distributing the matrix: \n", world_rank);
+ //    // printMatrix(Original, size);
+	// }
+ //  /*Receiving tasks*/
+ //  else{
+ //    for(int i = 0; i < size; i++){
+ //      for (int j = 0; j < size; j++) {
+ //        MPI_Recv(&I[i][j], 1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+ //      }
+ //    }
+ //    // printf("world_rank(%d) receiving the matrix: \n", world_rank);
+ //    // printMatrix(Copy, size);
+	// }
 
   // /*Executing kernel*/
   int *cut = malloc(size * (sizeof *cut));
@@ -74,13 +74,12 @@ void ludec_mpi(){
       for (int i = j + 1; i < size; i++){
         I[i][j] /= I[j][j];
       }
-      MPI_Bcast(&I[j][j], 1, MPI_DOUBLE, cut[j], MPI_COMM_WORLD);
     }
 
     //MPI_Barrier(MPI_COMM_WORLD);
 
     /* Brodcast Message for the other processing nodes */
-    // MPI_Bcast(&I[j][j], size - j, MPI_DOUBLE, cut[j], MPI_COMM_WORLD);
+    MPI_Bcast(&I[j][j], size - j, MPI_DOUBLE, cut[j], MPI_COMM_WORLD);
 
     for (int k = j + 1; k < size; k++){
       if(cut[j] == world_rank){
@@ -112,6 +111,8 @@ int main(int argc, char** argv){
 
   /* Run kernel. */
   // BEGINTIME();
+  aloc2Dmatrix(&I, size, size);
+  populate2Dmatrix(I, size);
   ludec_mpi();
   // ENDTIME();
 
