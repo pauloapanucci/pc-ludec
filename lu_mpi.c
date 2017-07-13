@@ -76,8 +76,24 @@ void ludec_mpi(){
       }
     }
 
+    MPI_Barrier(MPI_COMM_WORLD);
+
     /* Brodcast Message for the other processing nodes */
     MPI_Bcast(&I[j][j], size - j, MPI_DOUBLE, cut[j], MPI_COMM_WORLD);
+
+    // for(int i = 0; i < world_size; ++i){
+    //   if(i != world_rank){
+    //     for (int k = 0; k < j; ++k){
+    //        MPI_Send(&I[k][k], 1, MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+    //     }
+    //   }
+    // }
+
+    // for(int i = 0; i < world_size; ++i){
+    //   for (int k = 0; k < j; ++k){
+    //      MPI_Recv(&I[k][k], 1, MPI_DOUBLE, cut[j], 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    //   }
+    // }
 
     for (int k = j + 1; k < size; k++){
       if(cut[j] == world_rank){
