@@ -18,12 +18,19 @@ void printMatrixU(double **m, int n){
 
 void printMatrix(double **m, int n){
 	int i, j;
-  for (i = 0; i < n; i++)
-  for (j = 0; j <= i; j++) {
-    if ((i * n + j) % 20 == 0) printf("\n");
-    printf("%.2f ",m[i][j]);
+  // for (i = 0; i < n; i++)
+  // for (j = 0; j <= i; j++) {
+  //   if ((i * n + j) % 20 == 0) printf("\n");
+  //   printf("%.2f ",m[i][j]);
+  // }
+  // printf("\n");
+  for (int i = 0; i < n; ++i)
+  {
+    for (int j = 0; j < n; ++j)
+    {
+      printf("%.2f ",m[i][j]);
+    }
   }
-  printf("\n");
 }
 
 
