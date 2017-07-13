@@ -27,6 +27,8 @@ double **I;
 
 void ludec_mpi(){
   size = N;
+  aloc2Dmatrix(&I, size, size);
+  populate2Dmatrix(I, size);
   MPI_Init(NULL, NULL);
 
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -93,13 +95,14 @@ void ludec_mpi(){
 
   }
 
-  if(world_rank == 0){
-    printMatrix(I, size);
-  }
+  // if(world_rank == 0){
+  //   printMatrix(I, size);
+  // }
 
-  free2D(I);
+  // free2D(I);
 
 	MPI_Finalize();
+  printMatrix(I, size);
 }
 
 
@@ -111,8 +114,6 @@ int main(int argc, char** argv){
 
   /* Run kernel. */
   // BEGINTIME();
-  aloc2Dmatrix(&I, size, size);
-  populate2Dmatrix(I, size);
   ludec_mpi();
   // ENDTIME();
 
