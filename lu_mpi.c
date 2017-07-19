@@ -14,9 +14,6 @@
 /* Default data type is double, default size is 1024. */
 #include "lu.h"
 
-pthread_barrier_t barrier;
-pthread_mutex_t lock;
-
 // double **Original, **Copy;
 int size;
 int cut;
@@ -63,35 +60,37 @@ void ludec_mpi(){
  //    // printMatrix(Copy, size);
 	// }
 
+  int i = 0, j = 0, k = 0;
+
   // /*Executing kernel*/
   int *cut = malloc(size * (sizeof *cut));
 
-  for (int i = 0; i < size; i++){
+  for (i = 0; i < size; i++){
     cut[i] = i % world_size;
   }
 
-  for (int j = 0; j < size - 1; j++){
+  for (j = 0; j < size - 1; j++){
 
     if(cut[j] == world_rank){
-      for (int i = j + 1; i < size; i++){
+      for (i = j + 1; i < size; i++){
         I[i][j] /= I[j][j];
       }
     }
 
-    // MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
 
     /* Brodcast Message for the other processing nodes */
     MPI_Bcast(&I[j][j], size - j, MPI_DOUBLE, cut[j], MPI_COMM_WORLD);
 
-    for (int k = j + 1; k < size; k++){
+    for (k = j + 1; k < size; k++){
       if(cut[j] == world_rank){
-        for (int i = j + 1; i < size; i++){
+        for (i = j + 1; i < size; i++){
           I[k][i] -= I[k][j] * I[j][i];
         }
       }
     }
 
-    // MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
 
   }
 
@@ -102,12 +101,15 @@ void ludec_mpi(){
   // free2D(I);
 
 	MPI_Finalize();
-  printMatrix(I, size);
 }
 
 
 int main(int argc, char** argv){
   /* Retrieve problem size. */
+
+  // size = N;
+  // aloc2Dmatrix(&I, size, size);
+  // populate2Dmatrix(I, size);
 
   /* Start timer. */
   polybench_start_instruments;
@@ -115,6 +117,7 @@ int main(int argc, char** argv){
   /* Run kernel. */
   // BEGINTIME();
   ludec_mpi();
+  printMatrix(I, size);
   // ENDTIME();
 
   /* Stop and print timer. */
