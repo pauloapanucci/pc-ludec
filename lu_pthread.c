@@ -131,6 +131,7 @@ static void *kernel_lu(void *arg){
 
 }
 
+
 void ludec_pthread(){
 
   pthread_barrier_init(&barrier, NULL, nthreads);
