@@ -101,10 +101,6 @@ void ludec_mpi(){
 int main(int argc, char** argv){
   /* Retrieve problem size. */
 
-  // size = N;
-  // aloc2Dmatrix(&I, size, size);
-  // populate2Dmatrix(I, size);
-
   /* Start timer. */
   polybench_start_instruments;
 
