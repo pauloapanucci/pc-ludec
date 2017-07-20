@@ -24,10 +24,8 @@ void printMatrix(double **m, int n){
   //   printf("%.2f ",m[i][j]);
   // }
   // printf("\n");
-  for (int i = 0; i < n; ++i)
-  {
-    for (int j = 0; j < n; ++j)
-    {
+  for (int i = 0; i < n; ++i){
+    for (int j = 0; j < n; ++j){
       printf("%.2f ",m[i][j]);
     }
     printf("\n");
