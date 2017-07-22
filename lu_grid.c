@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <util.h>
+#include "util.h"
 #include <mpi.h>
 
 int cut;
@@ -43,15 +43,51 @@ void init(){
   request[1] = req_down;
   request[2] = req_left;
   request[3] = req_right;
-  comms[0] = {gr7_comm, MPI_COMM_NULL, MPI_COMM_NULL, gr1_comm};
-  comms[1] = {gr8_comm, MPI_COMM_NULL, gr1_comm, gr7_comm};
-  comms[2] = {gr9_comm, MPI_COMM_NULL, gr2_comm, proc1_comm};
-  comms[3] = {gr10_comm, gr7_comm, MPI_COMM_NULL, gr3_comm};
-  comms[4] = {gr11_comm, gr8_comm, gr3_comm, gr4_comm};
-  comms[5] = {gr12_comm, gr9_comm, gr4_comm, MPI_COMM_NULL};
-  comms[6] = {MPI_COMM_NULL, gr10_comm, proc3_comm, gr5_comm};
-  comms[7] = {MPI_COMM_NULL, gr11_comm, gr5_comm, gr6_comm};
-  comms[8] = {MPI_COMM_NULL, gr12_comm, gr6_comm, proc2_comm};
+
+  comms[0][0] = gr7_comm;
+  comms[0][1] = MPI_COMM_NULL;
+  comms[0][2] = req_comm;
+  comms[0][3] = gr1_comm;
+
+  comms[1][0] = gr8_comm;
+  comms[1][1] = MPI_COMM_NULL;
+  comms[1][2] = gr1_comm;
+  comms[1][3] = gr2_comm;
+
+  comms[2][0] = gr9_comm;
+  comms[2][1] = MPI_COMM_NULL;
+  comms[2][2] = gr2_comm;
+  comms[2][3] = proc1_comm;
+
+  comms[3][0] = gr10_comm;;
+  comms[3][1] = gr7_comm;
+  comms[3][2] = MPI_COMM_NULL;
+  comms[3][3] = gr3_comm;
+
+  comms[4][0] = gr11_comm;
+  comms[4][1] = gr8_comm;
+  comms[4][2] = gr3_comm;
+  comms[4][3] = gr4_comm;
+
+  comms[5][0] = gr12_comm;
+  comms[5][1] = gr9_comm;
+  comms[5][2] = gr4_comm;
+  comms[5][3] = MPI_COMM_NULL;
+
+  comms[6][0] = MPI_COMM_NULL;
+  comms[6][1] = gr10_comm;
+  comms[6][2] = proc3_comm;
+  comms[6][3] = gr5_comm;
+
+  comms[7][0] = MPI_COMM_NULL;
+  comms[7][1] = gr11_comm;
+  comms[7][2] = gr5_comm;
+  comms[7][3] = gr6_comm;
+
+  comms[8][0] = MPI_COMM_NULL;
+  comms[8][1] = gr12_comm;
+  comms[8][2] = gr6_comm;
+  comms[8][3] = proc2_comm;
 }
 
 void kernel_lu(int size, double **A){
@@ -286,7 +322,8 @@ void test_groups(){
 void request_loop(int nreq){
   for(int i = 0; i < nreq; i++) {
     int test = 0;
-    MPI_Send(&test, 1, MPI_INT, 0, TAG, request_comm, request[0]);
+    MPI_Send(&test, 1, MPI_INT, 0, TAG, req_comm);
+    printf("Send request %d\n", i);
   }
 }
 
@@ -294,19 +331,19 @@ void process_loop(){
   int size;
   if (world_rank == 10) {
     while (1) {
-      MPI_Recv(&size, 1, MPI_INT, 0, TAG, proc1_comm);
+      MPI_Recv(&size, 1, MPI_INT, 0, TAG, proc1_comm, &status);
       printf("to processando no world_rank: %d\n", world_rank);
     }
   }
   else if(world_rank == 11){
     while (1) {
-      MPI_Recv(&size, 1, MPI_INT, 0, TAG, proc2_comm);
+      MPI_Recv(&size, 1, MPI_INT, 0, TAG, proc2_comm, &status);
       printf("to processando no world_rank: %d\n", world_rank);
     }
   }
   else {
     while (1) {
-      MPI_Recv(&size, 1, MPI_INT, 0, TAG, proc3_comm);
+      MPI_Recv(&size, 1, MPI_INT, 0, TAG, proc3_comm, &status);
       printf("to processando no world_rank: %d\n", world_rank);
     }
   }
@@ -316,45 +353,64 @@ void process_loop(){
 //MPI_Request
 
 int rand_grid(){
+  srand(time(0));
   int pos;
   if(world_rank == 0 || world_rank == 6){
     do{
       pos = rand() % 4;
     }while(comms[world_rank][pos] == MPI_COMM_NULL || pos == 2);
-    return pos;
   }
   else if(world_rank == 2 || world_rank == 8){
     do{
       pos = rand() % 3;
     }while(comms[world_rank][pos] == MPI_COMM_NULL);
-    return pos;
   }
   else{
     do{
       pos = rand() % 4;
     }while(comms[world_rank][pos] == MPI_COMM_NULL);
-    return pos;
   }
+  return pos;
 }
 
 void grid_loop(){
-  int test;
+  int test = 0;
   int flag;
+  int r;
   while (1) {
-
     for(int i = 0; i < 4; i++) {
       if(comms[world_rank][i] != MPI_COMM_NULL){
-        MPI_Irecv(&test, 1, MPI_Init, 1, TAG, comms[world_rank][i], request[i]);
-        MPI_Test(request[i], &flag, &status);
+        MPI_Comm_rank(comms[world_rank][i], &r);
+        if(r == 0){
+          MPI_Irecv(&test, 1, MPI_INT, 1, TAG, comms[world_rank][i], &request[i]);
+        }
+        else{
+          MPI_Irecv(&test, 1, MPI_INT, 0, TAG, comms[world_rank][i], &request[i]);
+        }
+        MPI_Test(&request[i], &flag, &status);
         if(flag){
+          if(i == 0){
+            printf("NO %d RECEBEU DADO DE CIMA\n", world_rank);
+          }
+          else if(i == 1){
+            printf("NO %d RECEBEU DADO DE BAIXO\n", world_rank);
+          }
+          else if(i == 2){
+            printf("NO %d RECEBEU DADO DA ESQUERDA\n", world_rank);
+          }
+          else if(i == 3){
+            printf("NO %d RECEBEU DADO DA DIREITA\n", world_rank);
+          }
           // FAZER RECEIVE BLOQUEANTE
           //MANDAR TAMANHO DE TESTE
           if(world_rank == 2 || world_rank == 8){
-            MPI_Isend(&test, 1, MPI_INT, 1, TAG, comms[world_rank][3], request[3]);
-            MPI_Test(request[3], &flag, &status);
+            MPI_Isend(&test, 1, MPI_INT, 1, TAG, comms[world_rank][3], &request[3]);
+            MPI_Test(&request[3], &flag, &status);
             if(!flag){
-              int pos = rand_grid();
-              int r;
+              int pos = i;
+              while (pos == i) {
+                pos = rand_grid();
+              }
               MPI_Comm_rank(comms[world_rank][pos], &r);
               if(r == 0){
                 // MANDAR TAMANHO E MATRIZ
@@ -370,10 +426,13 @@ void grid_loop(){
             }
           }
           else if(world_rank == 6){
-            MPI_Isend(&test, 1, MPI_INT, 1, TAG, comms[world_rank][2], request[2]);
-            MPI_Test(request[2], &flag, &status);
+            MPI_Isend(&test, 1, MPI_INT, 1, TAG, comms[world_rank][2], &request[2]);
+            MPI_Test(&request[2], &flag, &status);
             if(!flag){
-              int pos = rand_grid();
+              int pos = i;
+              while (pos == i) {
+                pos = rand_grid();
+              }
               int r;
               MPI_Comm_rank(comms[world_rank][pos], &r);
               if(r == 0){
@@ -390,28 +449,49 @@ void grid_loop(){
             }
           }
           else{
-            int pos = rand_grid();
+            int pos = i;
+            while (pos == i) {
+              pos = rand_grid();
+            }
+            if(pos == 0){
+              printf("ENVIANDO DE %d PARA CIMA\n", world_rank);
+            }
+            else if(pos == 1){
+              printf("ENVIANDO DE %d PARA BAIXO\n", world_rank);
+            }
+            else if(pos == 2){
+              printf("ENVIANDO DE %d PARA ESQUERDA\n", world_rank);
+            }
+            else if(pos == 3){
+              printf("ENVIANDO DE %d PARA DIREITA\n", world_rank);
+            }
+
             int r;
             MPI_Comm_rank(comms[world_rank][pos], &r);
             if(r == 0){
               // MANDAR TAMANHO E MATRIZ
-              MPI_Send(&test, 1, MPI_INT, 1, TAG, comms[world_rank][pos]);
+              MPI_Isend(&test, 1, MPI_INT, 1, TAG, comms[world_rank][pos], &request[i]);
             }
             else{
               // MANDAR TAMANHO E MATRIZ
-              MPI_Send(&test, 1, MPI_INT, 0, TAG, comms[world_rank][pos]);
+              MPI_Isend(&test, 1, MPI_INT, 0, TAG, comms[world_rank][pos], &request[i]);
             }
           }
+        }//endifflag
+        else{
+          // int n = 0;
+          // if(world_rank == 3)
+            // printf("NODE %d NAO TO RECEBENDO NADA FROM %d\n", world_rank, i);
         }
-      }
-    }
-  }
+      }//endifnotnull
+    }//endfor
+  }//endwhile
 }
 
 int main(int argc, char **argv){
-  if(argc < 2){
-    printf("pass the quantity of requests as argument. EX: mpirun ./lu_mpi.out 3\n");
-  }
+  // if(argc < 2){
+  //   printf("pass the quantity of requests as argument. EX: mpirun ./lu_mpi.out 3\n");
+  // }
   int nreq = atoi(argv[1]);
 
 	/*Initialize MPI*/
@@ -419,14 +499,14 @@ int main(int argc, char **argv){
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
   create_groups();
-  test_groups();
+  // test_groups();
   init();
 	/*REQUEST NODE*/
 	if(world_rank == 9){
       request_loop(nreq);
 	}
 	/*PROCESSING NODES*/
-	else if(world_rank >= 9 && world_rank <= 12){
+	else if(world_rank >= 10 && world_rank <= 12){
     process_loop();
 	}
 	/*GRID NODES*/
