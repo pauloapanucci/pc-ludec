@@ -14,7 +14,7 @@ int cut;
 int nthreads;
 int world_size, world_rank;
 double **I;
-double start, end;
+double start, end, avg, min, max;
 
 void ludec_mpi(){
 
@@ -85,6 +85,9 @@ int main(int argc, char** argv){
   MPI_Init(NULL, NULL);
   size = N;
   aloc2Dmatrix(&I, size, size);
+  avg = 0;
+  min = INFINITY;
+  max = -INFINITY;
   for (int i = 0; i < 11; i++) {
     // populate2Dmatrix(I, size);
     start = MPI_Wtime();
@@ -98,7 +101,12 @@ int main(int argc, char** argv){
         if(b < start) start = b;
         if(e > end) end = e;
       }
-      printf("%f\n", end - start);
+      double t = end - start;
+      if(t < min) min = t;
+      if(t > max) max = t;
+      if(i != 0){
+        avg += t;
+      }
     }
     else{
       MPI_Send(&start, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
@@ -106,6 +114,13 @@ int main(int argc, char** argv){
     }
   }
   // free2D(I);
+  if (world_rank == 0) {
+    avg -= min;
+    avg -= max;
+    avg /= 8;
+    printf("%f\n", avg);
+  }
+
   MPI_Finalize();
 
   return 0;
