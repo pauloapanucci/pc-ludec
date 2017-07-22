@@ -7,12 +7,6 @@
 */
 #include <mpi.h>
 #include "util.h"
-
-/* Include polybench common header. */
-#include <polybench.h>
-
-/* Include benchmark-specific header. */
-/* Default data type is double, default size is 1024. */
 #include "lu.h"
 
 int size;
@@ -20,20 +14,16 @@ int cut;
 int nthreads;
 int world_size, world_rank;
 double **I;
+double start, end;
 
 void ludec_mpi(){
-  size = N;
+
   MPI_Status status;
-  aloc2Dmatrix(&I, size, size);
-  populate2Dmatrix(I, size);
-  MPI_Init(NULL, NULL);
+
 
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-  aloc2Dmatrix(&I, size, size);
-  populate2Dmatrix(I, size);
 
   /*Distribute tasks*/
 	if(world_rank == 0){
@@ -86,33 +76,37 @@ void ludec_mpi(){
       for(int i = 0; i < size; i++){
         MPI_Recv(I[i], size, MPI_DOUBLE, param, size + 1, MPI_COMM_WORLD, &status);
       }
-
     }
   }
-  /*Print Result*/
-  if(world_rank == 0){
-    printMatrix(I, size);
-  }
-
-	MPI_Finalize();
 }
 
 
 int main(int argc, char** argv){
-  /* Retrieve problem size. */
-
-  /* Start timer. */
-  polybench_start_instruments;
-
-  /* Run kernel. */
-  // BEGINTIME();
-  ludec_mpi();
-  // printMatrix(I, size);
-  // ENDTIME();
-
-  /* Stop and print timer. */
-  polybench_stop_instruments;
-  polybench_print_instruments;
+  MPI_Init(NULL, NULL);
+  size = N;
+  aloc2Dmatrix(&I, size, size);
+  for (int i = 0; i < 11; i++) {
+    // populate2Dmatrix(I, size);
+    start = MPI_Wtime();
+    ludec_mpi();
+    end = MPI_Wtime();
+    if(world_rank == 0){
+      double b, e;
+      for (int i = 1; i < world_size; i++) {
+        MPI_Recv(&b, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&e, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        if(b < start) start = b;
+        if(e > end) end = e;
+      }
+      printf("%f\n", end - start);
+    }
+    else{
+      MPI_Send(&start, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+      MPI_Send(&end, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+    }
+  }
+  // free2D(I);
+  MPI_Finalize();
 
   return 0;
 }
