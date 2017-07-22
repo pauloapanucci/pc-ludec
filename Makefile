@@ -10,7 +10,7 @@ BARRIER = pthread_barrier.c
 compile:
 	# $(CC) $(CFLAGS) -I utilities utilities/polybench.c util.c $(PROGRAM).c $(DATASET) -o $(PROGRAM).out
 	# $(CC) $(CFLAGS) -pthread -I utilities utilities/polybench.c util.c $(BARRIER) $(PROGRAM)_pthread.c $(DATASET) -o $(PROGRAM)_pthread.out
-	$(MCC) $(CFLAGS) util.c $(PROGRAM)_mpi.c $(DATASET) -o $(PROGRAM)_mpi.out
-	# $(MCC) $(CFLAGS) util.c $(PROGRAM)_grid.c $(DATASET) -o $(PROGRAM)_grid.out
+	# $(MCC) $(CFLAGS) util.c $(PROGRAM)_mpi.c $(DATASET) -o $(PROGRAM)_mpi.out
+	$(MCC) $(CFLAGS) util.c $(PROGRAM)_grid.c $(DATASET) -o $(PROGRAM)_grid.out
 clean:
 	rm *.out

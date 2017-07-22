@@ -15,6 +15,7 @@ int world_size, world_rank,
 		gr9_size, gr10_size, gr11_size, gr12_size,
 		req_size, proc1_size, proc2_size, proc3_size;
 int color;
+int TAG = 0;
 double **I;
 
 MPI_Group wgroup;
@@ -26,10 +27,32 @@ MPI_Comm gr1_comm, gr2_comm, gr3_comm, gr4_comm,
 				 gr5_comm, gr6_comm,gr7_comm, gr8_comm,
 				 gr9_comm, gr10_comm, gr11_comm, gr12_comm,
 				 req_comm, proc1_comm, proc2_comm, proc3_comm;
+MPI_Request req_up, req_down, req_left, req_right;
 // up, down, left, right
-MPI_Comm comms[9][4] = {{gr7_comm, MPI_COMM_NULL, MPI_COMM_NULL, gr1_comm}, {gr8_comm, MPI_COMM_NULL, gr1_comm, gr7_comm}, {gr9_comm, MPI_COMM_NULL, gr2_comm, proc1_comm},
-                        {gr10_comm, gr7_comm, MPI_COMM_NULL, gr3_comm}, {gr11_comm, gr8_comm, gr3_comm, gr4_comm}, {gr12_comm, gr9_comm, gr4_comm, MPI_COMM_NULL}
-											  {MPI_COMM_NULL, gr10_comm, proc3_comm, gr5_comm}, {MPI_COMM_NULL, gr11_comm, gr5_comm, gr6_comm}, {MPI_COMM_NULL, gr12_comm, gr6_comm, proc2_comm}};
+MPI_Comm comms[9][4];
+MPI_Request request[4];
+// MPI_Comm comms[9][4] = {{gr7_comm, MPI_COMM_NULL, MPI_COMM_NULL, gr1_comm}, {gr8_comm, MPI_COMM_NULL, gr1_comm, gr7_comm}, {gr9_comm, MPI_COMM_NULL, gr2_comm, proc1_comm},
+//                         {gr10_comm, gr7_comm, MPI_COMM_NULL, gr3_comm}, {gr11_comm, gr8_comm, gr3_comm, gr4_comm}, {gr12_comm, gr9_comm, gr4_comm, MPI_COMM_NULL},
+// 											  {MPI_COMM_NULL, gr10_comm, proc3_comm, gr5_comm}, {MPI_COMM_NULL, gr11_comm, gr5_comm, gr6_comm}, {MPI_COMM_NULL, gr12_comm, gr6_comm, proc2_comm}};
+//
+// MPI_Request request[4]; = {req_up, req_down, req_left, req_right};
+MPI_Status status;
+
+void init(){
+  request[0] = req_up;
+  request[1] = req_down;
+  request[2] = req_left;
+  request[3] = req_right;
+  comms[0] = {gr7_comm, MPI_COMM_NULL, MPI_COMM_NULL, gr1_comm};
+  comms[1] = {gr8_comm, MPI_COMM_NULL, gr1_comm, gr7_comm};
+  comms[2] = {gr9_comm, MPI_COMM_NULL, gr2_comm, proc1_comm};
+  comms[3] = {gr10_comm, gr7_comm, MPI_COMM_NULL, gr3_comm};
+  comms[4] = {gr11_comm, gr8_comm, gr3_comm, gr4_comm};
+  comms[5] = {gr12_comm, gr9_comm, gr4_comm, MPI_COMM_NULL};
+  comms[6] = {MPI_COMM_NULL, gr10_comm, proc3_comm, gr5_comm};
+  comms[7] = {MPI_COMM_NULL, gr11_comm, gr5_comm, gr6_comm};
+  comms[8] = {MPI_COMM_NULL, gr12_comm, gr6_comm, proc2_comm};
+}
 
 void kernel_lu(int size, double **A){
 	int i, j, k;
@@ -49,9 +72,9 @@ void create_groups(){
 	MPI_Comm_group(MPI_COMM_WORLD, &wgroup);
 
 	int ranks[16][2] = {{0, 1}, {1, 2}, {3, 4}, {4, 5},
-	{6, 7}, {7, 8}, {0, 3}, {1, 4},
-	{2, 5}, {3, 6}, {4, 7}, {5, 8},
-	{0, 9}, {2, 10}, {8, 11}, {6, 12}};
+	                    {6, 7}, {7, 8}, {0, 3}, {1, 4},
+	                    {2, 5}, {3, 6}, {4, 7}, {5, 8},
+	                    {0, 9}, {2, 10}, {8, 11}, {6, 12}};
 
 	/*INCLUDING GRID GROUP*/
 	MPI_Group_incl(wgroup, 2, ranks[0], &gr1);
@@ -260,38 +283,156 @@ void test_groups(){
 
 }
 
-void request_loop(){
-
+void request_loop(int nreq){
+  for(int i = 0; i < nreq; i++) {
+    int test = 0;
+    MPI_Send(&test, 1, MPI_INT, 0, TAG, request_comm, request[0]);
+  }
 }
 
 void process_loop(){
+  int size;
+  if (world_rank == 10) {
+    while (1) {
+      MPI_Recv(&size, 1, MPI_INT, 0, TAG, proc1_comm);
+      printf("to processando no world_rank: %d\n", world_rank);
+    }
+  }
+  else if(world_rank == 11){
+    while (1) {
+      MPI_Recv(&size, 1, MPI_INT, 0, TAG, proc2_comm);
+      printf("to processando no world_rank: %d\n", world_rank);
+    }
+  }
+  else {
+    while (1) {
+      MPI_Recv(&size, 1, MPI_INT, 0, TAG, proc3_comm);
+      printf("to processando no world_rank: %d\n", world_rank);
+    }
+  }
+}
+//MPI_Status
+//MPI_Test
+//MPI_Request
 
+int rand_grid(){
+  int pos;
+  if(world_rank == 0 || world_rank == 6){
+    do{
+      pos = rand() % 4;
+    }while(comms[world_rank][pos] == MPI_COMM_NULL || pos == 2);
+    return pos;
+  }
+  else if(world_rank == 2 || world_rank == 8){
+    do{
+      pos = rand() % 3;
+    }while(comms[world_rank][pos] == MPI_COMM_NULL);
+    return pos;
+  }
+  else{
+    do{
+      pos = rand() % 4;
+    }while(comms[world_rank][pos] == MPI_COMM_NULL);
+    return pos;
+  }
 }
 
 void grid_loop(){
+  int test;
+  int flag;
+  while (1) {
 
+    for(int i = 0; i < 4; i++) {
+      if(comms[world_rank][i] != MPI_COMM_NULL){
+        MPI_Irecv(&test, 1, MPI_Init, 1, TAG, comms[world_rank][i], request[i]);
+        MPI_Test(request[i], &flag, &status);
+        if(flag){
+          // FAZER RECEIVE BLOQUEANTE
+          //MANDAR TAMANHO DE TESTE
+          if(world_rank == 2 || world_rank == 8){
+            MPI_Isend(&test, 1, MPI_INT, 1, TAG, comms[world_rank][3], request[3]);
+            MPI_Test(request[3], &flag, &status);
+            if(!flag){
+              int pos = rand_grid();
+              int r;
+              MPI_Comm_rank(comms[world_rank][pos], &r);
+              if(r == 0){
+                // MANDAR TAMANHO E MATRIZ
+                MPI_Send(&test, 1, MPI_INT, 1, TAG, comms[world_rank][pos]);
+              }
+              else{
+                MPI_Send(&test, 1, MPI_INT, 0, TAG, comms[world_rank][pos]);
+              }
+            }
+            else{
+              // manda matriz inteira
+              int n = 0;
+            }
+          }
+          else if(world_rank == 6){
+            MPI_Isend(&test, 1, MPI_INT, 1, TAG, comms[world_rank][2], request[2]);
+            MPI_Test(request[2], &flag, &status);
+            if(!flag){
+              int pos = rand_grid();
+              int r;
+              MPI_Comm_rank(comms[world_rank][pos], &r);
+              if(r == 0){
+                // MANDAR TAMANHO E MATRIZ
+                MPI_Send(&test, 1, MPI_INT, 1, TAG, comms[world_rank][pos]);
+              }
+              else{
+                // MANDAR TAMANHO E MATRIZ
+                MPI_Send(&test, 1, MPI_INT, 0, TAG, comms[world_rank][pos]);
+              }
+            }
+            else{
+              // manda matriz inteira
+            }
+          }
+          else{
+            int pos = rand_grid();
+            int r;
+            MPI_Comm_rank(comms[world_rank][pos], &r);
+            if(r == 0){
+              // MANDAR TAMANHO E MATRIZ
+              MPI_Send(&test, 1, MPI_INT, 1, TAG, comms[world_rank][pos]);
+            }
+            else{
+              // MANDAR TAMANHO E MATRIZ
+              MPI_Send(&test, 1, MPI_INT, 0, TAG, comms[world_rank][pos]);
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
-int main(){
+int main(int argc, char **argv){
+  if(argc < 2){
+    printf("pass the quantity of requests as argument. EX: mpirun ./lu_mpi.out 3\n");
+  }
+  int nreq = atoi(argv[1]);
+
 	/*Initialize MPI*/
 	MPI_Init(NULL, NULL);
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-	//
-	// /*REQUEST NODE*/
-	// if(world_rank == 0){
-	//
-	// }
-	// /*PROCESSING NODES*/
-	// else if(world_rank >= 1 && world_rank <= 3){
-	//
-	// }
-	// /*GRID NODES*/
-	// else if(world_rank >= 4 && world_rank <= 12){
-	//
-	// }
-	create_groups();
-	test_groups();
+  create_groups();
+  test_groups();
+  init();
+	/*REQUEST NODE*/
+	if(world_rank == 9){
+      request_loop(nreq);
+	}
+	/*PROCESSING NODES*/
+	else if(world_rank >= 9 && world_rank <= 12){
+    process_loop();
+	}
+	/*GRID NODES*/
+	else if(world_rank >= 0 && world_rank <= 8){
+    grid_loop();
+	}
 	free_groups();
 	MPI_Finalize();
 }
