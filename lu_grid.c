@@ -38,6 +38,21 @@ MPI_Request request[4];
 // MPI_Request request[4]; = {req_up, req_down, req_left, req_right};
 MPI_Status status;
 
+
+void kernel_lu(int size, double **A){
+	int i, j, k;
+	for (k = 0; k < size; k++){
+		for (j = k+1; j < size; j++){
+			A[k][j] = A[k][j] / A[k][k];
+		}
+		for(i = k+1; i < size; i++){
+			for (j = k + 1; j < size; j++){
+				A[i][j] -= A[i][k] * A[k][j];
+			}
+		}
+	}
+}
+
 void init(){
   request[0] = req_up;
   request[1] = req_down;
@@ -88,20 +103,6 @@ void init(){
   comms[8][1] = gr12_comm;
   comms[8][2] = gr6_comm;
   comms[8][3] = proc2_comm;
-}
-
-void kernel_lu(int size, double **A){
-	int i, j, k;
-	for (k = 0; k < size; k++){
-		for (j = k+1; j < size; j++){
-			A[k][j] = A[k][j] / A[k][k];
-		}
-		for(i = k+1; i < size; i++){
-			for (j = k + 1; j < size; j++){
-				A[i][j] -= A[i][k] * A[k][j];
-			}
-		}
-	}
 }
 
 void create_groups(){
@@ -333,24 +334,24 @@ void process_loop(){
     while (1) {
       MPI_Recv(&size, 1, MPI_INT, 0, TAG, proc1_comm, &status);
       printf("to processando no world_rank: %d\n", world_rank);
+      // MPI_Send(&size, 1, MPI_INT, 0, TAG, proc1_comm);
     }
   }
   else if(world_rank == 11){
     while (1) {
       MPI_Recv(&size, 1, MPI_INT, 0, TAG, proc2_comm, &status);
       printf("to processando no world_rank: %d\n", world_rank);
+      // MPI_Send(&size, 1, MPI_INT, 0, TAG, proc1_comm);
     }
   }
-  else {
+  else if(world_rank == 12){
     while (1) {
       MPI_Recv(&size, 1, MPI_INT, 0, TAG, proc3_comm, &status);
       printf("to processando no world_rank: %d\n", world_rank);
+      // MPI_Send(&size, 1, MPI_INT, 0, TAG, proc1_comm);
     }
   }
 }
-//MPI_Status
-//MPI_Test
-//MPI_Request
 
 int rand_grid(){
   srand(time(0));
@@ -414,14 +415,14 @@ void grid_loop(){
               MPI_Comm_rank(comms[world_rank][pos], &r);
               if(r == 0){
                 // MANDAR TAMANHO E MATRIZ
-                MPI_Send(&test, 1, MPI_INT, 1, TAG, comms[world_rank][pos]);
+                MPI_Isend(&test, 1, MPI_INT, 1, TAG, comms[world_rank][pos], &request[i]);
               }
               else{
-                MPI_Send(&test, 1, MPI_INT, 0, TAG, comms[world_rank][pos]);
+                MPI_Isend(&test, 1, MPI_INT, 0, TAG, comms[world_rank][pos], &request[i]);
               }
             }
             else{
-              // manda matriz inteira
+              printf("mandei pra processar\n");
               int n = 0;
             }
           }
@@ -437,15 +438,15 @@ void grid_loop(){
               MPI_Comm_rank(comms[world_rank][pos], &r);
               if(r == 0){
                 // MANDAR TAMANHO E MATRIZ
-                MPI_Send(&test, 1, MPI_INT, 1, TAG, comms[world_rank][pos]);
+                MPI_Isend(&test, 1, MPI_INT, 1, TAG, comms[world_rank][pos], &request[i]);
               }
               else{
                 // MANDAR TAMANHO E MATRIZ
-                MPI_Send(&test, 1, MPI_INT, 0, TAG, comms[world_rank][pos]);
+                MPI_Isend(&test, 1, MPI_INT, 0, TAG, comms[world_rank][pos], &request[i]);
               }
             }
             else{
-              // manda matriz inteira
+              printf("mandei pra processar\n");
             }
           }
           else{
