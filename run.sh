@@ -28,7 +28,7 @@ rm final.data sort.data
 
 
 # PTHREAD LU
-for t in 2 4 8 16 32
+for t in 2 4 8 16
 do
 	file="./data/${PROGRAM}_pthread_$t.data"
 	if [ -f "$file" ]
@@ -60,7 +60,7 @@ file="./data/${PROGRAM}_speedup.data"
 if [ -f $file ] ; then
     rm $file
 fi
-for t in 2 4 8 16 32
+for t in 2 4 8 16
 do
 	# if [[ $t == 0 ]]; then
 	# 	echo "1" "1"  "1" >> ./data/$1_speedup.data
