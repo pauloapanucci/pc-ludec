@@ -1,118 +1,40 @@
-/**
-* This version is stamped on May 10, 2016
-*
-* Contact:
-*   Louis-Noel Pouchet <pouchet.ohio-state.edu>
-*   Tomofumi Yuki <tomofumi.yuki.fr>
-*
-* Web address: http://polybench.sourceforge.net
-*/
-/* lu.c: this file is part of PolyBench/C */
-
 #include "util.h"
-
-/* Include polybench common header. */
-#include <polybench.h>
-
-/* Include benchmark-specific header. */
 #include "lu.h"
 
+double **I;
+int size;
 
-/* Array initialization. */
-static void init_array (int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
-	int i, j;
+static void kernel_lu(){
+  int i, j, k;
 
-	for (i = 0; i < n; i++){
-		for (j = 0; j <= i; j++)
-		A[i][j] = (DATA_TYPE)(-j % n) / n + 1;
-		for (j = i+1; j < n; j++) {
-			A[i][j] = 0;
-		}
-		A[i][i] = 1;
-	}
-
-	/* Make the matrix positive semi-definite. */
-	/* not necessary for LU, but using same code as cholesky */
-	int r,s,t;
-	POLYBENCH_2D_ARRAY_DECL(B, DATA_TYPE, N, N, n, n);
-	for (r = 0; r < n; ++r)
-	for (s = 0; s < n; ++s)
-	(POLYBENCH_ARRAY(B))[r][s] = 0;
-	for (t = 0; t < n; ++t)
-	for (r = 0; r < n; ++r)
-	for (s = 0; s < n; ++s)
-	(POLYBENCH_ARRAY(B))[r][s] += A[r][t] * A[s][t];
-	for (r = 0; r < n; ++r)
-	for (s = 0; s < n; ++s)
-	A[r][s] = (POLYBENCH_ARRAY(B))[r][s];
-	POLYBENCH_FREE_ARRAY(B);
-
-}
-
-
-/* DCE code. Must scan the entire live-out data.
-Can be used also to check the correctness of the output. */
-static void print_array(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
-	int i, j;
-	POLYBENCH_DUMP_START;
-	POLYBENCH_DUMP_BEGIN("A");
-	for (i = 0; i < n; i++)
-	for (j = 0; j < n; j++) {
-		if ((i * n + j) % 20 == 0) fprintf (POLYBENCH_DUMP_TARGET, "\n");
-		fprintf (POLYBENCH_DUMP_TARGET, DATA_PRINTF_MODIFIER, A[i][j]);
-	}
-	POLYBENCH_DUMP_END("A");
-	POLYBENCH_DUMP_FINISH;
-}
-
-
-/* Main computational kernel. The whole function will be timed,
-including the call and return. */
-static void kernel_lu(int n, DATA_TYPE POLYBENCH_2D(A,N,N,n,n)){
-	int i, j, k;
-
-  #pragma scop
-  for (k = 0; k < _PB_N; k++){
-    for (j = k+1; j < _PB_N; j++){
-      A[k][j] = A[k][j] / A[k][k];
+  for (k = 0; k < size; k++){
+    for (j = k+1; j < size; j++){
+      I[k][j] = I[k][j] / I[k][k];
     }
-    for(i = k+1; i < _PB_N; i++){
-      for (j = k + 1; j < _PB_N; j++){
-        A[i][j] -= A[i][k] * A[k][j];
+    for(i = k+1; i < size; i++){
+      for (j = k + 1; j < size; j++){
+        I[i][j] -= I[i][k] * I[k][j];
       }
     }
   }
-  #pragma endscop
+  
 }
 
 
 int main(int argc, char** argv){
-	/* Retrieve problem size. */
-	int n = N;
+  size = N;
 
-	/* Variable declaration/allocation. */
-	POLYBENCH_2D_ARRAY_DECL(A, DATA_TYPE, N, N, n, n);
+  aloc2Dmatrix(&I, size, size);
+  populate2Dmatrix(I, size);
 
-	/* Initialize array(s). */
-	init_array (n, POLYBENCH_ARRAY(A));
+  BEGINTIME();
+  kernel_lu();
+  ENDTIME();
 
-	/* Start timer. */
-	polybench_start_instruments;
+  // printMatrix(I, size);
 
-	/* Run kernel. */
-	BEGINTIME();
-	kernel_lu (n, POLYBENCH_ARRAY(A));
-	ENDTIME();
-	/* Stop and print timer. */
-	polybench_stop_instruments;
-	polybench_print_instruments;
+  free2D(I);
 
-	/* Prevent dead-code elimination. All live-out data must be printed
-	by the function call in argument. */
-	polybench_prevent_dce(print_array(n, POLYBENCH_ARRAY(A)));
+  return 0;
 
-	/* Be clean. */
-	POLYBENCH_FREE_ARRAY(A);
-
-	return 0;
 }

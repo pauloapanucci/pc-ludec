@@ -8,7 +8,7 @@
 #include <string.h>
 #include <math.h>
 #include <pthread.h>
-#include "pthread_barrier.h"
+// #include "pthread_barrier.h"
 
 #define maximum(x, y) (((x) > (y)) ? (x) : (y))
 #define minimum(x, y) (((x) < (y)) ? (x) : (y))
