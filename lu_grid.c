@@ -381,7 +381,7 @@ void request_loop(int nreq){
     MPI_Send(&args, 3, MPI_INT, 0, TAG, req_comm);
     double **I;
     aloc2Dmatrix(&I, args[2], args[2]);
-    populate2Dmatrix(I, args[2]);  
+    populate2Dmatrix(I, args[2]);
     for (int j = 0; j < args[2]; j++) {
       for (int k = 0; k < args[2]; k++) {
         MPI_Send(&I[j][k], 1, MPI_DOUBLE, 0, TAG, req_comm);
