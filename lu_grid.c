@@ -584,9 +584,6 @@ void grid_loop(){
           }
 
         }//endifflag
-        else{
-          int x = 0; //se quiser fazer algo aqui
-        }//endelseflag
       }//endifvalidconnection
     }//endfor
   }//endwhilerun
