@@ -371,7 +371,7 @@ int rand_grid(int i){
   return pos;
 }
 
-// int 1{
+// int there_is_requests(){
 //   if(reqatt1 + reqatt2 + reqatt3 == nreq) return 0;
 //   else return 1;
 // }
@@ -379,210 +379,135 @@ int rand_grid(int i){
 
 void request_loop(int nreq){
   int args[3], test = 0; // args[req, world_rank, size]
-  for(int i = 0; i < nreq; i++){
+  for(int i = 0; i < nreq; i++) {
     args[0] = i; //req
     args[1] = world_rank; //world_rank
     args[2] = 20; // size
-
-    double **I;
-    aloc2Dmatrix(&I, args[2], args[2]);
-    populate2Dmatrix(I, args[2]);
-
     MPI_Send(&args, 3, MPI_INT, 0, TAG, req_comm);
-
-    for(int j = 0; j < args[2]; j++){
-      MPI_Send(&I[j], args[2], MPI_DOUBLE, 1, TAG, req_comm);
-    }
-    free2D(I);
   }
 }
 
 void process_loop(){
   int args[3];
   if (world_rank == 10) {
-    while (1) {
+    while (there_is_requests()) {
       MPI_Recv(&args, 3, MPI_INT, 0, TAG, proc1_comm, &status);
-
-      double **I;
-      aloc2Dmatrix(&I, args[2], args[2]);
-      for(int k = 0; k < args[2]; k++){
-        MPI_Recv(&I[k], args[2], MPI_DOUBLE, 1, TAG, comms[world_rank][3], &status);
-      }
-
       printf("\t\t\tPROCESSING REQ %d RECEIVED FROM %d ON PROCESSOR %d [size: %d]\n", args[0], args[1], world_rank, args[2]);
-
-      kernel_lu(args[2], I);
-      printMatrix(I, args[2]);
-      free2D(I);
-
+      reqatt1++;
+      MPI_Bcast(&reqatt1, 1, MPI_INT, 10, MPI_COMM_WORLD);
     }
   }
   else if(world_rank == 11){
-    while (1) {
+    while (there_is_requests()) {
       MPI_Recv(&args, 3, MPI_INT, 0, TAG, proc2_comm, &status);
-
-      double **I;
-      aloc2Dmatrix(&I, args[2], args[2]);
-      for(int k = 0; k < args[2]; k++){
-        MPI_Recv(&I[k], args[2], MPI_DOUBLE, 1, TAG, comms[world_rank][3], &status);
-      }
-
       printf("\t\t\tPROCESSING REQ %d RECEIVED FROM %d ON PROCESSOR %d [size: %d]\n", args[0], args[1], world_rank, args[2]);
-
-      kernel_lu(args[2], I);
-      printMatrix(I, args[2]);
-      free2D(I);
+      reqatt2++;
+      MPI_Bcast(&reqatt2, 1, MPI_INT, 11, MPI_COMM_WORLD);
     }
   }
   else if(world_rank == 12){
-    while (1) {
+    while (there_is_requests()) {
       MPI_Recv(&args, 3, MPI_INT, 0, TAG, proc3_comm, &status);
-
-      double **I;
-      aloc2Dmatrix(&I, args[2], args[2]);
-      for(int k = 0; k < args[2]; k++){
-        MPI_Recv(&I[k], args[2], MPI_DOUBLE, 1, TAG, comms[world_rank][2], &status);
-      }
-
       printf("\t\t\tPROCESSING REQ %d RECEIVED FROM %d ON PROCESSOR %d [size: %d]\n", args[0], args[1], world_rank, args[2]);
-
-      kernel_lu(args[2], I);
-      printMatrix(I, args[2]);
-      free2D(I);
+      reqatt3++;
+      MPI_Bcast(&reqatt3, 1, MPI_INT, 12, MPI_COMM_WORLD);
     }
   }
 }
 
-// void grid_loop(){
-//   MPI_Request r[4];
-//   MPI_Request rproc;
-//   MPI_Status rstatus;
-//   int grank, flag[4], procflag;
-//   int args[4][3], reqorder[4];
-//   int run = 1;
-//   for (int i = 0; i < 4; i++) {
-//     r[i] = MPI_REQUEST_NULL;
-//   }
-//   while(run){
-//     for (int i = 0; i < 4; i++){
-//       if(is_valid_connection(i)){
-//         if(r[i] == MPI_REQUEST_NULL){
-//           MPI_Comm_rank(comms[world_rank][i], &grank);
-//           if(grank == 0){
-//             MPI_Irecv(&args[i], 3, MPI_INT, 1, TAG, comms[world_rank][i], &r[i]);
-//           }
-//           else{
-//             MPI_Irecv(&args[i], 3, MPI_INT, 0, TAG, comms[world_rank][i], &r[i]);
-//           }
-//         }
-//       }
-//     }
-//     int completereqs = 0;
-//     while (completereqs == 0) {
-//       for (int i = 0; i < 4; i++) {
-//         if(is_valid_connection(i)){
-//           MPI_Test(&r[i], &flag[i], &rstatus);
-//           if(flag[i]){
-//             reqorder[completereqs] = i;
-//             completereqs++;
-//           }
-//         }
-//       }
-//     }
-//     for(int i = 0; i < completereqs; i++) {
-//       int j = reqorder[i];
-//       printf("\tNODE %d RECEIVING PACKAGE FROM %d [req: %d size: %d]\n", world_rank, args[j][1], args[j][0], args[j][2]);
-//
-//       // Recebe a Matriz
-//       double **I;
-//       aloc2Dmatrix(&I, args[j][2], args[j][2]);
-//       MPI_Comm_rank(comms[world_rank][j], &grank);
-//       if(grank == 0){
-//         for(int k = 0; k < args[j][2]; k++){
-//           MPI_Recv(&I[k], args[j][2], MPI_DOUBLE, 1, TAG, comms[world_rank][j], &rstatus);
-//         }
-//       }
-//       else{
-//         for(int k = 0; k < args[j][2]; k++){
-//           MPI_Recv(&I[k], args[j][2], MPI_DOUBLE, 0, TAG, comms[world_rank][j], &rstatus);
-//         }
-//       }
-//
-//
-//       //CASO CANTOS PROCESSADOR
-//       if(world_rank == 2 || world_rank == 6 || world_rank == 8){
-//         //VERIFICA SE PROCESSADOR ESTÁ DISPONIVEL
-//         if(world_rank == 6){
-//           MPI_Isend(&args[j], 3, MPI_INT, 1, TAG, comms[world_rank][2], &rproc);
-//         }
-//         else{
-//           MPI_Isend(&args[j], 3, MPI_INT, 1, TAG, comms[world_rank][3], &rproc);
-//         }
-//         MPI_Test(&rproc, &procflag, &rstatus);
-//         if(procflag){
-//           if(world_rank == 2){
-//             printf("\t\tPOCESSOR READY %d TO DO THE LUDEC, SEND THE MATRIX!\n", 10);
-//             for(int k = 0; k < args[j][2]; k++){
-//               MPI_Send(&I[k], args[j][2], MPI_DOUBLE, 1, TAG, proc1_comm);
-//             }
-//           }
-//           else if(world_rank == 6){
-//             printf("\t\tPOCESSOR READY %d TO DO THE LUDEC, SEND THE MATRIX!\n", 12);
-//             for(int k = 0; k < args[j][2]; k++){
-//               MPI_Send(&I[k], args[j][2], MPI_DOUBLE, 1, TAG, proc3_comm);
-//             }
-//           }
-//           else{
-//             printf("\t\tPOCESSOR READY %d TO DO THE LUDEC, SEND THE MATRIX!\n", 11);
-//             for(int k = 0; k < args[j][2]; k++){
-//               MPI_Send(&I[k], args[j][2], MPI_DOUBLE, 1, TAG, proc2_comm);
-//             }
-//           }
-//         }
-//         else{
-//           int pos = rand_grid(j);
-//           MPI_Comm_rank(comms[world_rank][pos], &grank);
-//           // args[j][1] = world_rank; // modifica o world_rank pra enviar
-//           printf("SEEMS THAT THIS PROCESSOR IS BUSY. SEND REQUEST %d FROM WORLD_RANK %d [size: %d]\n", args[j][0], world_rank, args[j][2]);
-//           if(grank == 0){
-//             MPI_Send(&args[j], 3, MPI_INT, 1, TAG, comms[world_rank][pos]);
-//             for(int k = 0; k < args[j][2]; k++){
-//               MPI_Send(&I[k], args[j][2], MPI_DOUBLE, 1, TAG, comms[world_rank][pos]);
-//             }
-//           }
-//           else{
-//             MPI_Send(&args[j], 3, MPI_INT, 0, TAG, comms[world_rank][pos]);
-//             for(int k = 0; k < args[j][2]; k++){
-//               MPI_Send(&I[k], args[j][2], MPI_DOUBLE, 0, TAG, comms[world_rank][pos]);
-//             }
-//           }
-//         }
-//       }
-//
-//       else{ //RAND NO GRID E SIMBORA PRA OUTRO NÓ
-//         int pos = rand_grid(j);
-//         MPI_Comm_rank(comms[world_rank][pos], &grank);
-//         args[j][1] = world_rank; // modifica o world_rank pra enviar
-//         if(grank == 0){
-//           MPI_Send(&args[j], 3, MPI_INT, 1, TAG, comms[world_rank][pos]);
-//           for(int k = 0; k < args[j][2]; k++){
-//             MPI_Send(&I[k], args[j][2], MPI_DOUBLE, 1, TAG, comms[world_rank][pos]);
-//           }
-//         }
-//         else{
-//           MPI_Send(&args[j], 3, MPI_INT, 0, TAG, comms[world_rank][pos]);
-//           for(int k = 0; k < args[j][2]; k++){
-//             MPI_Send(&I[k], args[j][2], MPI_DOUBLE, 0, TAG, comms[world_rank][pos]);
-//           }
-//         }
-//         printf("SEND REQUEST %d FROM WORLD_RANK %d [size: %d]\n", args[j][0], world_rank, args[j][2]);
-//       }
-//       r[j] = MPI_REQUEST_NULL;
-//       free2D(I);
-//     }//endfor
-//     sleep(1);
-//   }//endwhilerun
-// }
+void grid_loop(){
+  MPI_Request r[4];
+  MPI_Request rproc;
+  MPI_Status rstatus;
+  int grank, flag[4], procflag;
+  int args[4][3], reqorder[4];
+  int run = 1;
+  for (int i = 0; i < 4; i++) {
+    r[i] = MPI_REQUEST_NULL;
+  }
+  while(there_is_requests()){
+    for (int i = 0; i < 4; i++){
+      if(is_valid_connection(i)){
+        if(r[i] == MPI_REQUEST_NULL){
+          MPI_Comm_rank(comms[world_rank][i], &grank);
+          if(grank == 0){
+            MPI_Irecv(&args[i], 3, MPI_INT, 1, TAG, comms[world_rank][i], &r[i]);
+          }
+          else{
+            MPI_Irecv(&args[i], 3, MPI_INT, 0, TAG, comms[world_rank][i], &r[i]);
+          }
+        }
+      }
+    }
+    int completereqs = 0;
+    while (completereqs == 0) {
+      for (int i = 0; i < 4; i++) {
+        if(is_valid_connection(i)){
+          MPI_Test(&r[i], &flag[i], &rstatus);
+          if(flag[i]){
+            reqorder[completereqs] = i;
+            completereqs++;
+          }
+        }
+      }
+    }
+    for(int i = 0; i < completereqs; i++) {
+      int j = reqorder[i];
+      printf("\tNODE %d RECEIVING PACKAGE FROM %d [req: %d size: %d]\n", world_rank, args[j][1], args[j][0], args[j][2]);
+      //CASO CANTOS PROCESSADOR
+      if(world_rank == 2 || world_rank == 6 || world_rank == 8){
+        //VERIFICA SE PROCESSADOR ESTÁ DISPONIVEL
+        if(world_rank == 6){
+          MPI_Isend(&args[j], 3, MPI_INT, 1, TAG, comms[world_rank][2], &rproc);
+        }
+        else{
+          MPI_Isend(&args[j], 3, MPI_INT, 1, TAG, comms[world_rank][3], &rproc);
+        }
+        MPI_Test(&rproc, &procflag, &rstatus);
+        if(procflag){
+          if(world_rank == 2){
+            printf("\t\tPOCESSOR READY %d TO DO THE LUDEC, SEND THE MATRIX!\n", 10);
+          }
+          else if(world_rank == 6){
+            printf("\t\tPOCESSOR READY %d TO DO THE LUDEC, SEND THE MATRIX!\n", 12);
+          }
+          else{
+            printf("\t\tPOCESSOR READY %d TO DO THE LUDEC, SEND THE MATRIX!\n", 11);
+          }
+        }
+        else{
+          int pos = rand_grid(j);
+          MPI_Comm_rank(comms[world_rank][pos], &grank);
+          // args[j][1] = world_rank; // modifica o world_rank pra enviar
+          printf("SEEMS THAT THIS PROCESSOR IS BUSY. SEND REQUEST %d FROM WORLD_RANK %d [size: %d]\n", args[j][0], world_rank, args[j][2]);
+          if(grank == 0){
+            MPI_Send(&args[j], 3, MPI_INT, 1, TAG, comms[world_rank][pos]);
+            // MPI_Irecv(&test, 1, MPI_INT, 1, TAG, comms[world_rank][j], &r[j]);
+          }
+          else{
+            MPI_Send(&args[j], 3, MPI_INT, 0, TAG, comms[world_rank][pos]);
+            // MPI_Irecv(&test, 1, MPI_INT, 0, TAG, comms[world_rank][j], &r[j]);
+          }
+        }
+      }
+
+      else{ //RAND NO GRID E SIMBORA PRA OUTRO NÓ
+        int pos = rand_grid(j);
+        MPI_Comm_rank(comms[world_rank][pos], &grank);
+        args[j][1] = world_rank; // modifica o world_rank pra enviar
+        if(grank == 0){
+          MPI_Send(&args[j], 3, MPI_INT, 1, TAG, comms[world_rank][pos]);
+        }
+        else{
+          MPI_Send(&args[j], 3, MPI_INT, 0, TAG, comms[world_rank][pos]);
+        }
+        printf("SEND REQUEST %d FROM WORLD_RANK %d [size: %d]\n", args[j][0], world_rank, args[j][2]);
+      }
+      r[j] = MPI_REQUEST_NULL;
+    }//endfor
+    sleep(1);
+  }//endwhilerun
+}
 
 int main(int argc, char **argv){
   // if(argc < 2){
