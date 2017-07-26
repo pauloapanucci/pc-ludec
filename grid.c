@@ -3,39 +3,37 @@
 #include "util.h"
 #include <mpi.h>
 
-int cut;
-int nthreads;
 int world_size, world_rank,
-gr1_rank, gr2_rank, gr3_rank, gr4_rank,
-gr5_rank, gr6_rank, gr7_rank, gr8_rank,
-gr9_rank, gr10_rank, gr11_rank, gr12_rank,
-req_rank, proc1_rank, proc2_rank, proc3_rank,
-gr1_size, gr2_size, gr3_size, gr4_size,
-gr5_size, gr6_size, gr7_size, gr8_size,
-gr9_size, gr10_size, gr11_size, gr12_size,
-req_size, proc1_size, proc2_size, proc3_size;
-int color;
+    gr1_rank, gr2_rank, gr3_rank, gr4_rank,
+    gr5_rank, gr6_rank, gr7_rank, gr8_rank,
+    gr9_rank, gr10_rank, gr11_rank, gr12_rank,
+    req_rank, proc1_rank, proc2_rank, proc3_rank,
+    gr1_size, gr2_size, gr3_size, gr4_size,
+    gr5_size, gr6_size, gr7_size, gr8_size,
+    gr9_size, gr10_size, gr11_size, gr12_size,
+    req_size, proc1_size, proc2_size, proc3_size;
 int TAG = 0;
 
 MPI_Group wgroup;
 MPI_Group gr1, gr2, gr3, gr4,
-gr5, gr6, gr7, gr8,
-gr9, gr10, gr11, gr12,
-req, proc1, proc2, proc3;
-MPI_Comm gr1_comm, gr2_comm, gr3_comm, gr4_comm,
-gr5_comm, gr6_comm,gr7_comm, gr8_comm,
-gr9_comm, gr10_comm, gr11_comm, gr12_comm,
-req_comm, proc1_comm, proc2_comm, proc3_comm;
-MPI_Request req_up, req_down, req_left, req_right;
+          gr5, gr6, gr7, gr8,
+          gr9, gr10, gr11, gr12,
+          req, proc1, proc2, proc3;
+          MPI_Comm gr1_comm, gr2_comm, gr3_comm, gr4_comm,
+          gr5_comm, gr6_comm,gr7_comm, gr8_comm,
+          gr9_comm, gr10_comm, gr11_comm, gr12_comm,
+          req_comm, proc1_comm, proc2_comm, proc3_comm;
+          MPI_Request req_up, req_down, req_left, req_right;
+
 // up, down, left, right
 MPI_Comm comms[9][4];
 MPI_Request request[4];
-// MPI_Comm comms[9][4] = {{gr7_comm, MPI_COMM_NULL, MPI_COMM_NULL, gr1_comm}, {gr8_comm, MPI_COMM_NULL, gr1_comm, gr7_comm}, {gr9_comm, MPI_COMM_NULL, gr2_comm, proc1_comm},
-//                         {gr10_comm, gr7_comm, MPI_COMM_NULL, gr3_comm}, {gr11_comm, gr8_comm, gr3_comm, gr4_comm}, {gr12_comm, gr9_comm, gr4_comm, MPI_COMM_NULL},
-// 											  {MPI_COMM_NULL, gr10_comm, proc3_comm, gr5_comm}, {MPI_COMM_NULL, gr11_comm, gr5_comm, gr6_comm}, {MPI_COMM_NULL, gr12_comm, gr6_comm, proc2_comm}};
-//
-// MPI_Request request[4]; = {req_up, req_down, req_left, req_right};
+
 MPI_Status status;
+//NUMBER OF REQUESTS
+int nreq;
+//REQUESTS ATTEMPTED FROM PROCESSORS
+int reqatt1, reqatt2, reqatt3;
 
 
 void kernel_lu(int size, double **A){
@@ -53,6 +51,9 @@ void kernel_lu(int size, double **A){
 }
 
 void init(){
+  reqatt1 = 0;
+  reqatt2 = 0;
+  reqatt3 = 0;
   request[0] = req_up;
   request[1] = req_down;
   request[2] = req_left;
@@ -370,6 +371,10 @@ int rand_grid(int i){
   return pos;
 }
 
+// int there_is_requests(){
+//   if(reqatt1 + reqatt2 + reqatt3 == nreq) return 0;
+//   else return 1;
+// }
 /*GRID LOOPS*/
 
 void request_loop(int nreq){
@@ -380,29 +385,32 @@ void request_loop(int nreq){
     args[2] = 20; // size
     MPI_Send(&args, 3, MPI_INT, 0, TAG, req_comm);
   }
-  while (1) {
-
-  }
 }
 
 void process_loop(){
   int args[3];
   if (world_rank == 10) {
-    while (1) {
+    while (there_is_requests()) {
       MPI_Recv(&args, 3, MPI_INT, 0, TAG, proc1_comm, &status);
       printf("\t\t\tPROCESSING REQ %d RECEIVED FROM %d ON PROCESSOR %d [size: %d]\n", args[0], args[1], world_rank, args[2]);
+      reqatt1++;
+      MPI_Bcast(&reqatt1, 1, MPI_INT, 10, MPI_COMM_WORLD);
     }
   }
   else if(world_rank == 11){
-    while (1) {
+    while (there_is_requests()) {
       MPI_Recv(&args, 3, MPI_INT, 0, TAG, proc2_comm, &status);
       printf("\t\t\tPROCESSING REQ %d RECEIVED FROM %d ON PROCESSOR %d [size: %d]\n", args[0], args[1], world_rank, args[2]);
+      reqatt2++;
+      MPI_Bcast(&reqatt2, 1, MPI_INT, 11, MPI_COMM_WORLD);
     }
   }
   else if(world_rank == 12){
-    while (1) {
+    while (there_is_requests()) {
       MPI_Recv(&args, 3, MPI_INT, 0, TAG, proc3_comm, &status);
       printf("\t\t\tPROCESSING REQ %d RECEIVED FROM %d ON PROCESSOR %d [size: %d]\n", args[0], args[1], world_rank, args[2]);
+      reqatt3++;
+      MPI_Bcast(&reqatt3, 1, MPI_INT, 12, MPI_COMM_WORLD);
     }
   }
 }
@@ -411,13 +419,13 @@ void grid_loop(){
   MPI_Request r[4];
   MPI_Request rproc;
   MPI_Status rstatus;
-  int grank, value, flag[4], procflag, test;
+  int grank, flag[4], procflag;
   int args[4][3], reqorder[4];
   int run = 1;
   for (int i = 0; i < 4; i++) {
     r[i] = MPI_REQUEST_NULL;
   }
-  while(run){
+  while(there_is_requests()){
     for (int i = 0; i < 4; i++){
       if(is_valid_connection(i)){
         if(r[i] == MPI_REQUEST_NULL){
@@ -497,7 +505,7 @@ void grid_loop(){
       }
       r[j] = MPI_REQUEST_NULL;
     }//endfor
-    sleep(2);
+    sleep(1);
   }//endwhilerun
 }
 
@@ -505,7 +513,7 @@ int main(int argc, char **argv){
   // if(argc < 2){
   //   printf("pass the quantity of requests as argument. EX: mpirun ./lu_mpi.out 3\n");
   // }
-  int nreq = atoi(argv[1]);
+  nreq = atoi(argv[1]);
 
   /*Initialize MPI*/
   MPI_Init(NULL, NULL);
