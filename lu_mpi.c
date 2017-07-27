@@ -50,7 +50,7 @@ void ludec_mpi(){
     // printf("world_rank(%d) receiving the matrix: \n", world_rank);
     // printMatrix(I, size);
 	}
-
+  start = MPI_Wtime();
   /*Executing Kernel*/
   for(int k = 0; k < size; k++) {
     MPI_Bcast(I[k], size, MPI_DOUBLE, k % world_size, MPI_COMM_WORLD);
@@ -63,7 +63,7 @@ void ludec_mpi(){
       }
     }
   }
-
+  end = MPI_Wtime();
   /*Distributing Results*/
   int param = (size % world_size - 1 + world_size ) % world_size;
   if(param != 0) {
@@ -90,9 +90,9 @@ int main(int argc, char** argv){
   max = -INFINITY;
   for (int i = 0; i < 11; i++) {
     // populate2Dmatrix(I, size);
-    start = MPI_Wtime();
+    // start = MPI_Wtime();
     ludec_mpi();
-    end = MPI_Wtime();
+    // end = MPI_Wtime();
     if(world_rank == 0){
       double b, e;
       for (int i = 1; i < world_size; i++) {
