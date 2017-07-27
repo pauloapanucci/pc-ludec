@@ -41,7 +41,7 @@ void aloc1Dmatrix(double **a, int size);
 
 void aloc2Dmatrix(double ***m, int l, int c);
 
-void populate1Dmatrix(double *a, int nreq, int world_rank, int size);
+void populate1Dmatrix(double *a, int flag, int nreq, int world_rank, int size);
 
 void populate2Dmatrix(double **m, int size);
 

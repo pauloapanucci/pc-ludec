@@ -37,15 +37,15 @@ void printMatrix(double **m, int n){
 }
 
 void printArray(double *a, int n){
-	for (int i = 3; i < n * n + 3; i++) {
-    if((i - 3) % n == 0) printf("\n");
+	for (int i = 4; i < (n * n) + 4; i++) {
+    if((i - 4) % n == 0) printf("\n");
 	  printf("%.2f ",a[i]);
 	}
 }
 
 void aloc1Dmatrix(double **a, int size){
-  int n = (size * size) + 3;
-  *a = (double *)malloc(n * sizeof(double));
+  int n = (size * size) + 4;
+  *a = malloc(n * sizeof(double*));
 }
 
 
@@ -59,7 +59,7 @@ void aloc2Dmatrix(double ***m, int l, int c){
   }
 }
 
-void populate1Dmatrix(double *a, int nreq, int world_rank, int size){
+void populate1Dmatrix(double *a, int flag, int nreq, int world_rank, int size){
   //próprio método do polybench
 
   int i, j;
@@ -94,10 +94,11 @@ void populate1Dmatrix(double *a, int nreq, int world_rank, int size){
       m[r][s] = aux[r][s];
     }
 
-    a[0] = nreq;
-    a[1] = world_rank;
-    a[2] = size;
-    int k = 3;
+    a[0] = flag;
+    a[1] = nreq;
+    a[2] = world_rank;
+    a[3] = size;
+    int k = 4;
     for (int i = 0; i < size; i++) {
       for (int j = 0; j < size; j++) {
         a[k] = m[i][j];
