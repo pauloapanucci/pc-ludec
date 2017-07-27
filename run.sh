@@ -1,4 +1,4 @@
-clear
-mpicc util.c grid.c -o grid.out
-mpirun -n 13 ./grid.out 1
+# clear
+mpicc util.c lu_grid.c -o lu_grid.out
+mpirun -n 13 ./lu_grid.out 2
 # mpirun -n 13 xterm -e gdb ./grid.out 1

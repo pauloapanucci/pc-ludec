@@ -32,8 +32,6 @@ MPI_Request request[4];
 MPI_Status status;
 //NUMBER OF REQUESTS
 int nreq;
-//REQUESTS ATTEMPTED FROM PROCESSORS
-int reqatt1, reqatt2, reqatt3;
 
 
 void kernel_lu(int size, double **A){
@@ -51,9 +49,6 @@ void kernel_lu(int size, double **A){
 }
 
 void init(){
-  reqatt1 = 0;
-  reqatt2 = 0;
-  reqatt3 = 0;
   request[0] = req_up;
   request[1] = req_down;
   request[2] = req_left;
@@ -371,10 +366,6 @@ int rand_grid(int i){
   return pos;
 }
 
-// int there_is_requests(){
-//   if(reqatt1 + reqatt2 + reqatt3 == nreq) return 0;
-//   else return 1;
-// }
 /*GRID LOOPS*/
 
 void request_loop(int nreq){
@@ -385,32 +376,27 @@ void request_loop(int nreq){
     args[2] = 20; // size
     MPI_Send(&args, 3, MPI_INT, 0, TAG, req_comm);
   }
+  while (1){}
 }
 
 void process_loop(){
   int args[3];
   if (world_rank == 10) {
-    while (there_is_requests()) {
+    while (1) {
       MPI_Recv(&args, 3, MPI_INT, 0, TAG, proc1_comm, &status);
       printf("\t\t\tPROCESSING REQ %d RECEIVED FROM %d ON PROCESSOR %d [size: %d]\n", args[0], args[1], world_rank, args[2]);
-      reqatt1++;
-      MPI_Bcast(&reqatt1, 1, MPI_INT, 10, MPI_COMM_WORLD);
     }
   }
   else if(world_rank == 11){
-    while (there_is_requests()) {
+    while (1) {
       MPI_Recv(&args, 3, MPI_INT, 0, TAG, proc2_comm, &status);
       printf("\t\t\tPROCESSING REQ %d RECEIVED FROM %d ON PROCESSOR %d [size: %d]\n", args[0], args[1], world_rank, args[2]);
-      reqatt2++;
-      MPI_Bcast(&reqatt2, 1, MPI_INT, 11, MPI_COMM_WORLD);
     }
   }
   else if(world_rank == 12){
-    while (there_is_requests()) {
+    while (1) {
       MPI_Recv(&args, 3, MPI_INT, 0, TAG, proc3_comm, &status);
       printf("\t\t\tPROCESSING REQ %d RECEIVED FROM %d ON PROCESSOR %d [size: %d]\n", args[0], args[1], world_rank, args[2]);
-      reqatt3++;
-      MPI_Bcast(&reqatt3, 1, MPI_INT, 12, MPI_COMM_WORLD);
     }
   }
 }
@@ -425,7 +411,7 @@ void grid_loop(){
   for (int i = 0; i < 4; i++) {
     r[i] = MPI_REQUEST_NULL;
   }
-  while(there_is_requests()){
+  while(1){
     for (int i = 0; i < 4; i++){
       if(is_valid_connection(i)){
         if(r[i] == MPI_REQUEST_NULL){
