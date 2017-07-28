@@ -34,7 +34,7 @@ MPI_Status status, rstatus;
 // int nreq;
 
 int maxsize;
-
+int proc_is_busy;
 int grank, flag[4], procflag;
 int reqorder[4];
 int run = 1;
@@ -54,11 +54,7 @@ void kernel_lu(int size, double *A){
 }
 
 void init(){
-  // tam = (20 * 20) + 3;
-  // request[0] = req_up;
-  // request[1] = req_down;
-  // request[2] = req_left;
-  // request[3] = req_right;
+  proc_is_busy = 0;
 
   comms[0][0] = gr7_comm;
   comms[0][1] = MPI_COMM_NULL;
@@ -415,6 +411,7 @@ void process_loop(){
         kernel_lu(20, args);
         args[0] = 1;
         MPI_Send(args, n, MPI_DOUBLE, 0, TAG, proc1_comm);
+        proc_is_busy = 0;
       }
       else {
         printf("STOPPING ACTIVITIES ON PROCESSOR: %d\n", world_rank);
@@ -430,6 +427,7 @@ void process_loop(){
         kernel_lu(20, args);
         args[0] = 1;
         MPI_Send(args, n, MPI_DOUBLE, 0, TAG, proc2_comm);
+        proc_is_busy = 0;
       }
       else {
         printf("STOPPING ACTIVITIES ON PROCESSOR: %d\n", world_rank);
@@ -445,6 +443,7 @@ void process_loop(){
         kernel_lu(20, args);
         args[0] = 1;
         MPI_Send(args, n, MPI_DOUBLE, 0, TAG, proc3_comm);
+        proc_is_busy = 0;
       }
       else {
         printf("STOPPING ACTIVITIES ON PROCESSOR: %d\n", world_rank);
@@ -459,14 +458,14 @@ void grid_loop_go(double *args, int j, int n){
   //CASO CANTOS PROCESSADOR
   if(world_rank == 2 || world_rank == 6 || world_rank == 8){
     //VERIFICA SE PROCESSADOR ESTÁ DISPONIVEL
-    if(world_rank == 6){
-      MPI_Isend(args, n, MPI_DOUBLE, 1, TAG, comms[world_rank][2], &rproc);
-    }
-    else{
-      MPI_Isend(args, n, MPI_DOUBLE, 1, TAG, comms[world_rank][3], &rproc);
-    }
-    MPI_Test(&rproc, &procflag, &rstatus);
-    if(procflag){
+    // if(world_rank == 6){
+    //   MPI_Isend(args, n, MPI_DOUBLE, 1, TAG, comms[world_rank][2], &rproc);
+    // }
+    // else{
+    //   MPI_Isend(args, n, MPI_DOUBLE, 1, TAG, comms[world_rank][3], &rproc);
+    // }
+    // MPI_Test(&rproc, &procflag, &rstatus);
+    if(!proc_is_busy){
       if(world_rank == 2){
         printf("\t\tPROCESSOR READY %d TO DO THE LUDEC, SEND THE MATRIX!\n", 10);
       }
@@ -476,6 +475,13 @@ void grid_loop_go(double *args, int j, int n){
       else{
         printf("\t\tPROCESSOR READY %d TO DO THE LUDEC, SEND THE MATRIX!\n", 11);
       }
+      if(world_rank == 6){
+        MPI_Send(args, n, MPI_DOUBLE, 1, TAG, comms[world_rank][2]);
+      }
+      else{
+        MPI_Send(args, n, MPI_DOUBLE, 1, TAG, comms[world_rank][3]);
+      }
+      proc_is_busy = 1;
     }
     else{
       int pos = rand_grid(j);
