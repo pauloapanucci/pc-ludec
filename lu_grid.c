@@ -31,9 +31,9 @@ MPI_Request r[4], rproc;
 
 MPI_Status status, rstatus;
 //NUMBER OF REQUESTS
-int nreq;
+// int nreq;
 
-int tam;
+int maxsize;
 
 int grank, flag[4], procflag;
 int reqorder[4];
@@ -374,36 +374,38 @@ int rand_grid(int i){
 
 /*GRID LOOPS*/
 
-void request_loop(int nreq){
-  int test = 0; // args[req, world_rank, size]
-  int n = (20 * 20) + 4;
-  for(int i = 1; i <= nreq; i++) {
-    // double args[n];
-    double* args = malloc(n * sizeof *args);
-    // aloc1Dmatrix(&args, 20);
-    populate1Dmatrix(args, 0, i, world_rank, 20);
+void request_loop(int *reqs, int nreqs, int maxsize){
+  int n = (maxsize * maxsize) + 4;
+  printf("nreqs %d maxsize %d\n", nreqs, maxsize);
+  for(int i = 0; i < nreqs; i++) {
+    double *args;
+    // double* args = malloc(n * sizeof *args);
+    aloc1Dmatrix(&args, maxsize);
+    populate1Dmatrix(args, 0, i + 1, world_rank, reqs[i]);
     // printArray(args, 20);
     MPI_Send(args, n, MPI_DOUBLE, 0, TAG, req_comm);
     // free1D(args);
     free(args);
   }
-  for (int i = 0; i < nreq; i++) {
-    double* args = malloc(n * sizeof *args);
+  for(int i = 0; i < nreqs; i++) {
+    // double* args = malloc(n * sizeof *args);
+    double *args;
+    aloc1Dmatrix(&args, maxsize);
     MPI_Recv(args, n, MPI_DOUBLE, 0, TAG, req_comm, &status);
     printf("REQUEST ATTEMPTED. [req: %.0f size: %.0f]\n", args[1], args[3]);
-    // printArray(args, 20);
+    // printArray(args, args[3]);
     free(args);
   }
-  double* args = malloc(n * sizeof *args);
+  double *args;
+  aloc1Dmatrix(&args, maxsize);
   args[0] = 2;
   printf("LETS KILL\n");
   MPI_Send(args, n, MPI_DOUBLE, 0, TAG, req_comm);
   free(args);
-  // while (1){}
 }
 
 void process_loop(){
-  int n = (20 * 20) + 4;
+  int n = (maxsize * maxsize) + 4;
   double* args = malloc(n * sizeof *args);
   if (world_rank == 10) {
     while (run) {
@@ -501,7 +503,7 @@ void grid_loop_go(double *args, int j, int n){
     else{
       MPI_Send(args, n, MPI_DOUBLE, 0, TAG, comms[world_rank][pos]);
     }
-    printf("SEND REQUEST %.0f FROM WORLD_RANK %d [size: %.0f]\n", args[0], world_rank, args[2]);
+    printf("SEND REQUEST %.0f FROM WORLD_RANK %d [size: %.0f]\n", args[1], world_rank, args[3]);
   }
   r[j] = MPI_REQUEST_NULL;
 }
@@ -539,7 +541,7 @@ void grid_loop_kill(double *args, int j, int n){
 
 void grid_loop(){
   double **args;
-  int n = (20 * 20) + 4;
+  int n = (maxsize * maxsize) + 4;
   aloc2Dmatrix(&args, 4, n);
   for (int i = 0; i < 4; i++) {
     r[i] = MPI_REQUEST_NULL;
@@ -584,7 +586,7 @@ void grid_loop(){
         run = 0;
       }
     }//endfor
-    sleep(1);
+    sleep(2);
   }//endwhilerun
 }
 
@@ -592,7 +594,7 @@ int main(int argc, char **argv){
   // if(argc < 2){
   //   printf("pass the quantity of requests as argument. EX: mpirun ./lu_mpi.out 3\n");
   // }
-  nreq = atoi(argv[1]);
+  // nreq = atoi(argv[1]);
 
   /*Initialize MPI*/
   MPI_Init(NULL, NULL);
@@ -602,8 +604,16 @@ int main(int argc, char **argv){
   // test_groups();
   init();
   /*REQUEST NODE*/
+
+  int nreqs = atoi(argv[1]);
+  maxsize = atoi(argv[2]);
+
+  int *reqs = malloc(nreqs * sizeof *reqs);
+  for(int i = 0; i < nreqs; i++) {
+    reqs[i] = atoi(argv[i + 3]);
+  }
   if(world_rank == 9){
-    request_loop(nreq);
+    request_loop(reqs, nreqs, maxsize);
   }
   /*PROCESSING NODES*/
   else if(world_rank >= 10 && world_rank <= 12){

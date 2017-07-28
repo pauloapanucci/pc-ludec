@@ -45,7 +45,10 @@ void printArray(double *a, int n){
 
 void aloc1Dmatrix(double **a, int size){
   int n = (size * size) + 4;
-  *a = malloc(n * sizeof(double*));
+  (*a) = malloc(n * sizeof **a);
+  for (int i = 0; i < n; i++) {
+    (*a)[i] = 0;
+  }
 }
 
 
