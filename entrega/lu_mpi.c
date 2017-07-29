@@ -76,28 +76,23 @@ void ludec_mpi(){
 
 int main(int argc, char** argv){
   MPI_Init(NULL, NULL);
+
   size = N;
   aloc2Dmatrix(&I, size, size);
-  // start = MPI_Wtime();
+
+  start = MPI_Wtime();
   ludec_mpi();
-  // end = MPI_Wtime();
-  if(world_rank == 0){
-    double b, e;
-    for (int i = 1; i < world_size; i++) {
-      MPI_Recv(&b, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      MPI_Recv(&e, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-  }
-  else{
-    MPI_Send(&start, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-    MPI_Send(&end, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-  }
+  end = MPI_Wtime();
+
   // if(world_rank == 0){
   //   printMatrix(I, size);
   // }
   //
   // printf("%f\n", end - start);
+
   free2D(I);
+
   MPI_Finalize();
+
   return 0;
 }

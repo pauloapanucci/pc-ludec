@@ -17,7 +17,7 @@ static void kernel_lu(){
       }
     }
   }
-  
+
 }
 
 
@@ -27,9 +27,9 @@ int main(int argc, char** argv){
   aloc2Dmatrix(&I, size, size);
   populate2Dmatrix(I, size);
 
-  BEGINTIME();
+  // BEGINTIME();
   kernel_lu();
-  ENDTIME();
+  // ENDTIME();
 
   // printMatrix(I, size);
 

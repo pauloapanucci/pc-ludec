@@ -66,9 +66,9 @@ int main(int argc, char** argv){
   aloc2Dmatrix(&I, size, size);
   populate2Dmatrix(I, size);
 
-  BEGINTIME();
+  // BEGINTIME();
   ludec_pthread();
-  ENDTIME();
+  // ENDTIME();
 
   // printMatrix(I, size);
 
