@@ -2,7 +2,7 @@
 CC = gcc
 MCC = mpicc
 CFLAGS = -std=gnu99 -O3
-DATASET = -DLARGE_DATASET
+DATASET = -DCUSTOM_DATASET
 PROGRAM = lu
 # BARRIER = pthread_barrier.c
 
@@ -15,7 +15,7 @@ pthread:
 	$(CC) $(CFLAGS) -pthread util.c $(PROGRAM)_pthread.c $(DATASET) -o $(PROGRAM)_pthread.out -lm
 
 mpi:
-	$(MCC) $(CFLAGS) util.c $(PROGRAM)_mpi.c -o $(PROGRAM)_mpi.out
+	$(MCC) $(CFLAGS) util.c $(PROGRAM)_mpi.c  $(DATASET) -o $(PROGRAM)_mpi.out
 
 grid:
 	$(MCC) $(CFLAGS) util.c $(PROGRAM)_grid.c -o $(PROGRAM)_grid.out
