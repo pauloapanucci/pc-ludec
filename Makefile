@@ -5,7 +5,6 @@ CFLAGS = -std=gnu99 -O3
 DATASET = -DLARGE_DATASET
 PROGRAM = lu
 # BARRIER = pthread_barrier.c
-# BARRIER = ""
 
 all: sequential pthread mpi grid
 
