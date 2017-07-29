@@ -4,7 +4,6 @@ MCC = mpicc
 CFLAGS = -std=gnu99 -O3
 DATASET = -DCUSTOM_DATASET
 PROGRAM = lu
-# BARRIER = pthread_barrier.c
 
 all: sequential pthread mpi grid
 
