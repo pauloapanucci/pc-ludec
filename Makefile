@@ -7,12 +7,19 @@ PROGRAM = lu
 # BARRIER = pthread_barrier.c
 # BARRIER = ""
 
-compile:
-	# $(CC) $(CFLAGS) util.c $(PROGRAM).c $(DATASET) -o $(PROGRAM).out -lm
-	# $(CC) $(CFLAGS) -pthread util.c $(PROGRAM)_pthread.c $(DATASET) -o $(PROGRAM)_pthread.out -lm
-	# $(CC) $(CFLAGS) -I utilities utilities/polybench.c util.c $(PROGRAM).c $(DATASET) -o $(PROGRAM).out
-	# $(CC) $(CFLAGS) -pthread -I utilities utilities/polybench.c util.c $(BARRIER) $(PROGRAM)_pthread.c $(DATASET) -o $(PROGRAM)_pthread.out
+all: sequential pthread mpi grid
+
+sequential:
+	$(CC) $(CFLAGS) util.c $(PROGRAM).c $(DATASET) -o $(PROGRAM).out -lm
+
+pthread:
+	$(CC) $(CFLAGS) -pthread util.c $(PROGRAM)_pthread.c $(DATASET) -o $(PROGRAM)_pthread.out -lm
+
+mpi:
 	$(MCC) $(CFLAGS) util.c $(PROGRAM)_mpi.c $(DATASET) -o $(PROGRAM)_mpi.out
-	#$(MCC) $(CFLAGS) util.c $(PROGRAM)_grid.c $(DATASET) -o $(PROGRAM)_grid.out
+
+grid:
+	$(MCC) $(CFLAGS) util.c $(PROGRAM)_grid.c $(DATASET) -o $(PROGRAM)_grid.out
+
 clean:
 	rm *.out

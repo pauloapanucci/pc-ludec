@@ -17,7 +17,6 @@ static void *kernel_lu(void *arg){
   int start = id * cut;
   int end = minimum(start + cut, size);
 
-  #pragma scop
   for (k = 0; k < size; k++){
     int goof = maximum(k + 1, start);
     for (i = goof; i < end; i++){
@@ -31,9 +30,8 @@ static void *kernel_lu(void *arg){
     }
     pthread_barrier_wait(&barrier);
   }
-  #pragma endscop
-  return NULL;
 
+  return NULL;
 }
 
 
