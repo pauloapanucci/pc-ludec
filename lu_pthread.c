@@ -1,5 +1,6 @@
 #include "util.h"
 #include "lu.h"
+// #include "pthread_barrier.h"
 
 pthread_barrier_t barrier;
 pthread_mutex_t lock;
